@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[5]:
 
 
 # IMPORTING EVERYTHING I COULD POSSIBLY NEED #
@@ -16,8 +12,7 @@ import matplotlib
 import sklearn
 from IPython.core.display import display, HTML
 
-######################################################################################################################
-
+""
 from IPython.core.interactiveshell import InteractiveShell
 InteractiveShell.ast_node_interactivity = "all"
 
@@ -31,8 +26,7 @@ import seaborn as sns
 
 sns.set(style="whitegrid", font_scale=1.9)
 
-######################################################################################################################
-
+""
 # TO WORK WITH
 import pandas as pd
 import numpy as np
@@ -117,17 +111,16 @@ from pickle import dump
 from pickle import load
 
 
-# In[46]:
 
 
 def recommendations(coefs, airbnb, X_wnei, data, recom):
     '''
     Makes recommendations based on the specific Airbnb's characteristics and the important features recognized by
     the best model in best_models()
-    
-    ''' 
+
+    '''
 #   X columns and model's nonzero column indeces
-    X_wnei_cols = X_wnei.columns
+#     X_wnei_cols = X_wnei.columns
 #     nonz = np.nonzero(coefs)[0]
 
 #   Names of important columns
@@ -135,7 +128,7 @@ def recommendations(coefs, airbnb, X_wnei, data, recom):
 #     for col in nonz:
 #         imp_cols.append(X_wnei_cols[col])
 
-## This commented out part deletes everything having to do with reviews and id, 
+## This commented out part deletes everything having to do with reviews and id,
 ## while we are already dropping them in best_models()
 
 # #   Airbnb's areas of improvement according to the model's nonzero columns
@@ -176,20 +169,24 @@ def recommendations(coefs, airbnb, X_wnei, data, recom):
 
 #         ind += 1
 
+
+    X_wnei_cols = X_wnei.columns
+
     for_improvement = []
     for col in range(1,len(X_wnei.columns)):
         if coefs[col] > 0 :
             if airbnb[0][col] < data.iloc[:,col].mean():
-#                 print(X_wnei.columns[col])
-#                 print(airbnb[0][col], data.iloc[:,col].mean())
-                sent = recom.iloc[0, col]
-                for_improvement.append(sent)
-        elif coefs[col] < 0: 
+                if "cancellations" not in recom.iloc[0, col] and ("You should be more moderate on cancellations" not in for_improvement and "You should be less strict on cancellations" not in for_improvement):
+                    if "messages" not in recom.iloc[0, col] and ("You should answer messages sooner" not in for_improvement):
+                        sent = recom.iloc[0, col]
+                        for_improvement.append(sent)
+        elif coefs[col] < 0:
             if airbnb[0][col] > data.iloc[:,col].mean():
-#                 print(X_wnei.columns[col])
-                sent = recom.iloc[1, col]
-                for_improvement.append(sent)
-        
+                if "cancellations" not in recom.iloc[1, col] and ("You should be more moderate on cancellations" not in for_improvement and "You should be less strict on cancellations" not in for_improvement):
+                    if "messages" not in recom.iloc[1, col] and ("You should answer messages sooner" not in for_improvement):
+                        sent = recom.iloc[1, col]
+                        for_improvement.append(sent)
+
 #     print(for_improvement)
     # If there are improvements to make...
     if len(for_improvement) != 0:
@@ -204,70 +201,56 @@ def recommendations(coefs, airbnb, X_wnei, data, recom):
         return print("Your Airbnb is very competitive compared to all the other Airbnbs in Boston!")
 
 
-# In[47]:
-
-
-# data.iloc[:,3].mean()
-
-
-# In[ ]:
-
-
-
-
-
-# In[48]:
-
 
 def best_models(data):
     '''
     Implements Ridge, Lasso and ElasticNet to determine best model, based on inputted data.
-    
+
     '''
     MSEs = []
-    
+
 
     data=data.dropna()
-    
+
     data=data[data["number_of_reviews"]>=1]
     data=data[data["guests_included"]>=1]
-    
-    data['price_per_person'] = data['price_per_night']/data['guests_included']+data['extra_people']
-    
-    data['output'] = data['number_of_reviews']*data['review_scores_rating']/data['availability_365']
-    
-    data = data.drop(["property_type","room_type","description","house_rules", "amenities", "id", 
+
+    data['price_per_person'] = data['price_per_night']/(data['guests_included']+data['extra_people'])
+
+    data['output'] = (data['number_of_reviews']*data['review_scores_rating'])/data['availability_365']
+
+    data = data.drop(["property_type","room_type","description","house_rules", "amenities", "id",
     "review_scores_rating", "review_scores_accuracy", "review_scores_cleanliness",
-    "review_scores_checkin", "review_scores_communication", "review_scores_value", "number_of_reviews", 
-                      "reviews_per_month", "availability_365", "neighbourhood_cleansed","bathrooms", 
+    "review_scores_checkin", "review_scores_communication", "review_scores_value", "number_of_reviews",
+                      "reviews_per_month", "availability_365", "neighbourhood_cleansed","bathrooms",
                       "host_is_superhost", "accommodates", "bedrooms","beds", "guests_included","price_per_night",
                       "extra_people", "host_is_superhost", "Kitchen_boolean", "Gym_bool", "Elevator_in_building_bool",
-                      "Clothes_Washer_bool", "Internet_bool"],axis=1)
-    
+                      "Clothes_Washer_bool", "Internet_bool", "price_per_person"],axis=1)
+
     scaler=MinMaxScaler(feature_range=(0,1))
-    
+
 
     data[['security_deposit']] = scaler.fit_transform(data[['security_deposit']])
     data[['cleaning_fee']] = scaler.fit_transform(data[['cleaning_fee']])
     data[['host_response_rate']] = scaler.fit_transform(data[['host_response_rate']])
-    data[['price_per_person']] = scaler.fit_transform(data[['price_per_person']])
-    
+#     data[['price_per_person']] = scaler.fit_transform(data[['price_per_person']])
+
     data.to_numpy()
     data=pd.DataFrame(data)
-    
+
     data=data.dropna()
-    
+
     data['output'][data['output'] > 260] = 260
 
     y = data["output"] # Target variable (price)
     X_wnei = data.drop(["output"],axis=1)
-    
+
     # Creating new DF without neighborhood names
     X_wnei.to_csv("X_wnei.csv", index=False)
     data.to_csv("data.csv", index=False)
-    
+
     #########################################################################################################
-    # Ridge Regression 
+    # Ridge Regression
 
     kfold=KFold(n_splits=10, random_state=7)
 
@@ -277,11 +260,11 @@ def best_models(data):
     results=cross_val_score(model, X_wnei, y, cv=kfold, scoring=scoring)
     clf = model.fit(X_wnei, y)
     MSEs.append(("Ridge Regression", results.mean(), clf.coef_))
-    
+
 
     #########################################################################################################
-    # Lasso Regression 
-    
+    # Lasso Regression
+
     kfold=KFold(n_splits=10, random_state=7)
 
     model=Lasso()
@@ -292,8 +275,8 @@ def best_models(data):
     MSEs.append(("Lasso Regression", results.mean(), clf.coef_))
 
     #########################################################################################################
-    # Elastic Net Regression 
-    
+    # Elastic Net Regression
+
     kfold=KFold(n_splits=10, random_state=7)
 
     model=ElasticNet()
@@ -303,17 +286,15 @@ def best_models(data):
     clf = model.fit(X_wnei, y)
     MSEs.append(("ElasticNet Regression", results.mean(), clf.coef_))
 #     print(MSEs)
-    
+
     #########################################################################################################
-    
+
     return (min(MSEs, key = lambda t: t[1])[0], X_wnei, y, min(MSEs, key = lambda t: t[1])[2], data)
 
 
-# In[54]:
-
 
 #########################################################################################################
-##############    MAIN
+# #############    MAIN
 
 data = pd.read_csv("listings_8.csv")
 recom = pd.read_csv("recom.csv")
@@ -323,7 +304,7 @@ best_model = best_models(data)
 method = best_model[0]
 X_wnei = best_model[1]
 y = best_model[2]
-coefs = best_model[3].reshape(34,1)
+coefs = best_model[3].reshape(33,1)
 data = best_model[4]
 
 
@@ -340,62 +321,15 @@ print("_________________________________________________________________________
 # Example of airbnb that needs improvements according to our best model
 print("\nExample of airbnb that needs improvements according to our best model")
 print("-")
-airbnb = pd.read_csv("X_wnei.csv").iloc[1].values.reshape(1,-1)
+airbnb = pd.read_csv("X_wnei.csv").iloc[151].values.reshape(1,-1)
 recommendations(coefs, airbnb, X_wnei, data, recom)
 print("____________________________________________________________________________________\n")
 
 
-# In[ ]:
-
-
-
-
 
 # Good ones to showcase!
-# 
+#
 # airbnb = pd.read_csv("X_wnei.csv").iloc[1345].values.reshape(1,-1) -> Nothing to improve
 # airbnb = pd.read_csv("X_wnei.csv").iloc[1].values.reshape(1,-1) -> A lot to improve
+#
 # 
-# 
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
