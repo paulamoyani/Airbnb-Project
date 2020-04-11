@@ -332,4 +332,4 @@ print("_________________________________________________________________________
 # airbnb = pd.read_csv("X_wnei.csv").iloc[1345].values.reshape(1,-1) -> Nothing to improve
 # airbnb = pd.read_csv("X_wnei.csv").iloc[1].values.reshape(1,-1) -> A lot to improve
 #
-#
+# 
